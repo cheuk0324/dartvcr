@@ -3,91 +3,79 @@ import 'dart:io';
 
 import 'request_elements/http_interaction.dart';
 
-/// A class representing a cassette that contains a list of [HttpInteraction]s.
 class Cassette {
-  /// The path to the cassette file.
   final String _filePath;
-
-  /// The name of the cassette.
   final String name;
-
-  /// Whether or not the cassette is locked (i.e. being written to).
   bool _locked = false;
 
-  /// Creates a new [Cassette] with the given [name] and [folderPath].
-  ///
-  /// ```dart
-  /// Cassette cassette = Cassette('my_cassette', 'cassettes');
-  /// ```
+  // New field to store interactions
+  List<HttpInteraction> _interactions = [];
+
   Cassette(folderPath, this.name) : _filePath = '$folderPath/$name.json';
 
-  /// Returns the number of interactions in the cassette.
-  int get numberOfInteractions => read().length;
+  // New constructor to create a cassette from a JSON string
+  Cassette.fromJson(String jsonData, this.name) : _filePath = '' {
+    _createFromJson(jsonData);
+  }
 
-  /// Returns a list of all [HttpInteraction]s in the cassette.
+  int get numberOfInteractions =>
+      _interactions.isNotEmpty ? _interactions.length : read().length;
+
   List<HttpInteraction> read() {
-    List<HttpInteraction> interactions = [];
+    // Return interactions if already loaded
+    if (_interactions.isNotEmpty) {
+      return _interactions;
+    }
 
     if (!_exists()) {
-      return interactions;
+      return [];
     }
 
     File file = File(_filePath);
     String fileContents = file.readAsStringSync();
 
     if (fileContents.isNotEmpty) {
-      List<dynamic> json = jsonDecode(fileContents);
-
-      interactions = json.map((e) => HttpInteraction.fromJson(e)).toList();
+      _interactions = jsonDecode(fileContents)
+          .map<HttpInteraction>((e) => HttpInteraction.fromJson(e))
+          .toList();
     }
 
-    return interactions;
+    return _interactions;
   }
 
-  /// Adds or overwrites the given [interaction] to the cassette.
   void update(HttpInteraction interaction) {
-    File file = File(_filePath);
-    if (!file.existsSync()) {
-      file.createSync(recursive: true);
-    }
-
     _preWriteCheck();
-
-    List<HttpInteraction> interactions = read();
-
-    interactions.add(interaction);
-
-    File(_filePath).writeAsStringSync(jsonEncode(interactions));
-  }
-
-  /// Deletes the cassette file.
-  void erase() {
-    File file = File(_filePath);
-    if (file.existsSync()) {
-      file.deleteSync();
+    _interactions.add(interaction);
+    if (_filePath.isNotEmpty) {
+      File file = File(_filePath);
+      file.createSync(recursive: true);
+      file.writeAsStringSync(
+          jsonEncode(_interactions.map((e) => e.toJson()).toList()));
     }
   }
 
-  /// Returns true if the cassette file exists.
-  bool _exists() {
-    File file = File(_filePath);
-    return file.existsSync();
+  void erase() {
+    if (_filePath.isNotEmpty && File(_filePath).existsSync()) {
+      File(_filePath).deleteSync();
+    }
+    _interactions.clear();
   }
 
-  /// Locks the cassette so that it cannot be written to.
-  void lock() {
-    _locked = true;
-  }
+  bool _exists() => _filePath.isNotEmpty && File(_filePath).existsSync();
 
-  /// Unlocks the cassette so that it can be written to.
-  void unlock() {
-    _locked = false;
-  }
-
-  /// Check if the cassette can be written to.
+  void lock() => _locked = true;
+  void unlock() => _locked = false;
   void _preWriteCheck() {
     if (_locked) {
       throw Exception('Cassette $name is locked');
+    }
+  }
+
+  void _createFromJson(String jsonData) {
+    if (jsonData.isNotEmpty) {
+      _interactions = jsonDecode(jsonData)
+          .map<HttpInteraction>((e) => HttpInteraction.fromJson(e))
+          .toList();
     }
   }
 }

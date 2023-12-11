@@ -1,13 +1,14 @@
 name: dartvcr
 description: A Dart library for recording and replaying HTTP requests. Port of EasyVCR.
-version: VERSIONADDEDBYGITHUB
-repository: https://github.com/nwithan8/dartvcr
+version: 0.0.1
+repository: https://github.com/cheuk0324/dartvcr
+# folked from repository: https://github.com/nwithan8/dartvcr
 
 environment:
-  sdk: '>=2.18.2 <3.0.0'
+  sdk: '>=2.18.2 <3.2.0'
 
 dependencies:
-  http: ^0.13.0
+  http: 1.0.0
   http_parser: ^4.0.0
   json_annotation: ^4.7.0
   meta: ^1.3.0
